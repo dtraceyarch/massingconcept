@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>149 Peachtree St SW — Zoning Envelope Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --paper: #f2ecdd;
+    --paper-line: #d9cfb4;
+    --ink: #23281f;
+    --ink-soft: #5a5c4e;
+    --stamp: #a13d2c;
+    --blueprint: #0f2438;
+    --blueprint-line: #1c3f5c;
+    --cyan: #4fd3c4;
+    --ok: #3f7d4a;
+    --warn: #b8862c;
+    --bad: #a13d2c;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;background:var(--blueprint);font-family:'IBM Plex Sans',sans-serif;color:var(--ink);}
+  #app{display:flex;height:100vh;width:100vw;overflow:hidden;}
+
+  /* ---------- Sidebar ---------- */
+  #sidebar{
+    width:378px;min-width:378px;height:100%;background:var(--paper);
+    overflow-y:auto;overflow-x:hidden;
+    border-right:1px solid #00000022;
+    padding:22px 20px 60px 20px;
+  }
+  #sidebar::-webkit-scrollbar{width:8px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#00000022;border-radius:4px;}
+
+  .title-block{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:16px;}
+  .kicker{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;color:var(--stamp);margin-bottom:4px;}
+  h1{font-family:'Source Serif 4',serif;font-size:22px;font-weight:700;margin:0 0 4px 0;line-height:1.15;}
+  .subtitle{font-family:'Source Serif 4',serif;font-style:italic;font-size:14.5px;color:var(--ink-soft);}
+  .meta-line{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:8px;}
+
+  h2{
+    font-family:'Source Serif 4',serif;font-size:15px;font-weight:600;
+    margin:22px 0 8px 0;padding-bottom:4px;border-bottom:1px solid var(--paper-line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .h2-note{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);font-weight:400;}
+
+  .layer-row{
+    display:flex;align-items:flex-start;gap:9px;padding:6px 2px;border-radius:4px;cursor:pointer;
+    transition:background .12s;
+  }
+  .layer-row:hover{background:#00000008;}
+  .layer-row input{margin-top:3px;accent-color:var(--stamp);cursor:pointer;flex:none;}
+  .swatch{width:11px;height:11px;border-radius:2px;margin-top:3px;flex:none;border:1px solid #00000030;}
+  .layer-text{flex:1;}
+  .layer-label{font-size:13px;font-weight:500;line-height:1.3;}
+  .layer-detail{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);margin-top:1px;}
+
+  .field{margin:12px 0;}
+  .field-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+  .field-label{font-size:12.5px;font-weight:500;}
+  .field-value{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--stamp);font-weight:600;}
+  input[type=range]{width:100%;accent-color:var(--stamp);cursor:pointer;}
+  select{
+    width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 8px;
+    border:1px solid var(--ink-soft);background:#fff;color:var(--ink);border-radius:3px;
+  }
+
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .preset-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 9px;border-radius:3px;
+    border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;
+    transition:.12s;
+  }
+  .preset-btn:hover{background:var(--ink);color:var(--paper);}
+  .preset-btn.active{background:var(--stamp);border-color:var(--stamp);color:#fff;}
+
+  .far-bar-wrap{margin:10px 0 14px 0;}
+  .far-bar-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;}
+  .far-bar-name{font-weight:500;}
+  .far-bar-num{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .far-track{height:9px;background:#00000012;border-radius:5px;overflow:hidden;border:1px solid #00000018;}
+  .far-fill{height:100%;border-radius:5px 0 0 5px;transition:width .18s ease, background .18s ease;}
+  .far-cap-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);margin-top:2px;}
+
+  .status-pill{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;
+    padding:2px 7px;border-radius:10px;margin-top:2px;
+  }
+
+  .toggle-panel-btn{
+    width:100%;text-align:left;font-family:'Source Serif 4',serif;font-size:14.5px;font-weight:600;
+    background:transparent;border:none;border-top:2px solid var(--ink);padding:14px 0 8px 0;
+    cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:var(--ink);
+    margin-top:22px;
+  }
+  .toggle-panel-btn .arrow{font-family:'IBM Plex Mono',monospace;font-size:13px;transition:transform .15s;}
+  .toggle-panel-btn.open .arrow{transform:rotate(90deg);}
+
+  #procPanel{display:none;padding-top:6px;}
+  #procPanel.open{display:block;}
+  .proc-group{margin-bottom:14px;}
+  .proc-group h3{font-size:12.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.02em;color:var(--stamp);margin:0 0 6px 0;}
+  .proc-group ul{margin:0;padding-left:16px;}
+  .proc-group li{font-size:12.5px;line-height:1.5;margin-bottom:5px;}
+  .proc-group li b{font-weight:600;}
+
+  .footnote{font-size:11px;color:var(--ink-soft);line-height:1.5;margin-top:18px;padding-top:12px;border-top:1px solid var(--paper-line);}
+
+  /* ---------- Canvas ---------- */
+  #canvasWrap{flex:1;position:relative;background:var(--blueprint);}
+  #canvas3d{width:100%;height:100%;display:block;cursor:grab;}
+  #canvas3d.dragging{cursor:grabbing;}
+
+  #hud{
+    position:absolute;top:18px;left:18px;font-family:'IBM Plex Mono',monospace;color:#cfe3ea;
+    font-size:11px;line-height:1.6;background:#0f243890;padding:10px 13px;border:1px solid var(--blueprint-line);
+    border-radius:4px;pointer-events:none;
+  }
+  #hud b{color:var(--cyan);}
+
+  #fitBtn{
+    position:absolute;bottom:18px;right:18px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    background:#0f243890;color:#cfe3ea;border:1px solid var(--blueprint-line);border-radius:4px;
+    padding:9px 14px;cursor:pointer;
+  }
+  #fitBtn:hover{background:#1c3f5c;}
+
+  .label3d{
+    position:absolute;pointer-events:none;font-family:'IBM Plex Mono',monospace;font-size:11px;
+    color:#e8f2f0;white-space:nowrap;text-shadow:0 0 4px #0f2438, 0 0 8px #0f2438;
+    transform:translate(-50%,-100%);
+  }
+
+  @media (max-width: 900px){
+    #app{flex-direction:column;}
+    #sidebar{width:100%;min-width:0;height:52%;}
+    #canvasWrap{height:48%;}
+  }
+
+/* ===== URBAN LAB EXTENSION ===== */
+#urbanLabPanel{margin-top:18px;border-top:2px solid var(--ink);padding-top:12px}
+.lab-panel{border-bottom:1px solid var(--paper-line);padding:0 0 10px;margin-bottom:8px}
+.lab-panel>button{width:100%;border:0;background:none;padding:8px 0;text-align:left;font-family:'Source Serif 4',serif;font-size:14px;font-weight:600;display:flex;justify-content:space-between;cursor:pointer;color:var(--ink)}
+.lab-panel>button .arr{font-family:'IBM Plex Mono',monospace}
+.lab-body{display:block;padding:2px 0 8px}
+.lab-body.closed{display:none}
+.lab-row{margin:8px 0}
+.lab-row-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lab-label{font-size:12px;font-weight:500}
+.lab-value{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--stamp);font-weight:600}
+.lab-select,.lab-number{width:100%;padding:5px 6px;border:1px solid var(--ink-soft);background:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.lab-check{display:flex;gap:7px;align-items:center;font-size:12px;margin:6px 0}
+.lab-check input{accent-color:var(--stamp)}
+.lab-status{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:8px;white-space:nowrap}
+.lab-status.ok{background:#3f7d4a22;color:var(--ok)}
+.lab-status.warn{background:#b8862c22;color:var(--warn)}
+.lab-status.bad{background:#a13d2c22;color:var(--bad)}
+.lab-status.exp{background:#7b5aa622;color:#68498d}
+.lab-metric{display:flex;justify-content:space-between;border-bottom:1px dotted var(--paper-line);padding:4px 0;font-family:'IBM Plex Mono',monospace;font-size:10.5px}
+.lab-note{font-size:10px;line-height:1.4;color:var(--ink-soft);margin-top:6px}
+.lab-buttons{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.lab-btn{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 5px;border:1px solid var(--ink);background:transparent;cursor:pointer}
+.lab-btn:hover,.lab-btn.active{background:var(--ink);color:var(--paper)}
+.lab-btn.stamp{border-color:var(--stamp);color:var(--stamp)}
+.lab-btn.stamp:hover,.lab-btn.stamp.active{background:var(--stamp);color:#fff}
+#projectDashboard{border:1px solid var(--paper-line);padding:8px;margin-top:8px}
+.comp-row{display:grid;grid-template-columns:1.25fr .8fr .9fr;gap:5px;padding:5px 0;border-bottom:1px dotted var(--paper-line);font-size:10px;align-items:center}
+.comp-row.head{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--ink-soft);font-weight:600}
+.comp-status{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:600;text-align:right}
+.parcel-info{border-left:3px solid var(--stamp);padding:6px 8px;background:#00000005;margin-top:7px}
+#contextHud{position:absolute;top:18px;right:18px;max-width:310px;font-family:'IBM Plex Mono',monospace;color:#cfe3ea;font-size:10px;line-height:1.55;background:#0f2438cc;padding:9px 12px;border:1px solid var(--blueprint-line);border-radius:4px;pointer-events:none}
+#contextHud b{color:var(--cyan)}
+#selectionHint{position:absolute;bottom:18px;left:18px;font-family:'IBM Plex Mono',monospace;color:#cfe3ea;font-size:10px;background:#0f2438cc;padding:7px 10px;border:1px solid var(--blueprint-line);border-radius:4px;pointer-events:none}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="sidebar">
+    <div class="title-block">
+      <div class="kicker">ZONING ENVELOPE STUDY</div>
+      <h1>149 Peachtree St SW</h1>
+      <div class="subtitle">SPI-1, Subarea 6 — Terminus</div>
+      <div class="meta-line">Parcel 14-0077-0006-107-6 · ≈29,071 GSF (0.67 ac) · Atlanta Code §16-18A</div>
+    </div>
+
+
+    <div id="urbanLabPanel">
+      <div class="kicker">ARCHITECTURE + URBAN DESIGN LAB</div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="siteLab">SITE <span class="arr">▾</span></button>
+        <div class="lab-body" id="siteLab">
+          <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Project site area</span><span class="lab-value">29,071 GSF</span></div></div>
+          <label class="lab-check"><input id="enforceBoundary" type="checkbox" checked> Enforce project boundary</label>
+          <label class="lab-check"><input id="zeroLotLine" type="checkbox" checked> Zero-lot-line development</label>
+          <div class="lab-row">
+            <div class="lab-row-top"><span class="lab-label">Lot coverage</span><span class="lab-value" id="labCoverageVal">75%</span></div>
+            <input id="labCoverage" type="range" min="0" max="110" value="75" step="1">
+            <div class="lab-note">50–100% is the stated project range. Above 100% remains available as experimental geometry.</div>
+          </div>
+          <div class="lab-row" id="setbackRow" style="display:none">
+            <div class="lab-row-top"><span class="lab-label">Experimental setback</span><span class="lab-value" id="labSetbackVal">0 ft</span></div>
+            <input id="labSetback" type="range" min="0" max="50" value="0" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="programLab">PROGRAM <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="programLab">
+          <div class="lab-row"><div class="lab-label">Ground floor program</div>
+            <select class="lab-select" id="groundProgram">
+              <option>Retail</option><option>Restaurant</option><option>Food Hall</option><option>Community</option><option>Civic</option><option>Cultural</option><option>Office</option><option>Institutional</option><option>Transit-Oriented Commercial</option><option>Mixed Non-Residential</option><option>Experimental</option>
+            </select>
+          </div>
+          <div class="lab-row"><div class="lab-label">Residential development type</div>
+            <select class="lab-select" id="resType">
+              <option>Apartments</option><option>Student Housing</option><option>Co-Living</option><option>Micro-Units</option><option>Mixed Unit Housing</option><option>Courtyard Housing</option><option>Modular Housing</option><option>Stacked Flats</option><option>Hybrid</option><option>Experimental</option>
+            </select>
+          </div>
+          <div class="lab-row"><div class="lab-label">Residential collective areas</div>
+            <div id="communityChecks"></div>
+            <div class="lab-note" id="communityCount">Community functions: 0 / 3 required</div>
+          </div>
+          <div class="lab-row"><div class="lab-label">Unit mix</div><div id="unitMixControls"></div>
+            <div class="lab-note" id="unitMixCount">Unit types: 0 / 2 required</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="densityLab">DENSITY <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="densityLab">
+          <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Residential FAR</span><span class="lab-value" id="labResFarVal">3.0</span></div>
+            <input id="labResFar" type="range" min="0" max="8" value="3" step=".1"></div>
+          <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Total project FAR</span><span class="lab-value" id="labTotalFarVal">4.0</span></div>
+            <input id="labTotalFar" type="range" min="0" max="10" value="4" step=".1"></div>
+          <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Project floors</span><span class="lab-value" id="labFloorsVal">20</span></div>
+            <input id="labFloors" type="range" min="0" max="60" value="20" step="1"></div>
+          <div class="lab-metric"><span>Residential GSF</span><b id="labResGSF">87,213</b></div>
+          <div class="lab-metric"><span>Total project GSF</span><b id="labTotalGSF">116,284</b></div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="openLab">OPEN SPACE <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="openLab">
+          <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Open space FAR</span><span class="lab-value" id="labOpenFarVal">1.0</span></div>
+            <input id="labOpenFar" type="range" min="0" max="3" value="1" step=".1"></div>
+          <div class="lab-row"><div class="lab-label">Open-space type</div>
+            <select class="lab-select" id="openType"><option>Courtyard</option><option>Public Plaza</option><option>Semi-Public Courtyard</option><option>Rooftop Open Space</option><option>Green Space</option><option>Pedestrian Passage</option><option>Pocket Park</option><option>Market Space</option><option>Urban Commons</option></select>
+          </div>
+          <div class="lab-note">Required baseline: 29,071 GSF usable open space. The selected type is represented spatially in the model.</div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="daylightLab">DAYLIGHT <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="daylightLab">
+          <label class="lab-check"><input id="daylightEnforce" type="checkbox" checked> Enforce daylight access</label>
+          <div class="lab-metric"><span>Conceptual test</span><b id="daylightReadout">100% / 100%</b></div>
+          <div class="lab-note">Conceptual daylight test only. It is not a formal architectural code analysis.</div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="contextLab">CONTEXT <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="contextLab">
+          <div class="lab-row"><div class="lab-label">Context scale</div>
+            <select class="lab-select" id="contextScale"><option value="1">01 — Project Site</option><option value="2">02 — Immediate Blocks</option><option value="3">03 — Multi-Block South Downtown</option><option value="4">04 — Experimental Future</option></select>
+          </div>
+          <div class="lab-row"><div class="lab-label">Context state</div>
+            <select class="lab-select" id="contextState"><option value="existing">EXISTING CITY</option><option value="max">MAXIMUM DEVELOPMENT</option><option value="user">USER-DEFINED DEVELOPMENT</option></select>
+          </div>
+          <label class="lab-check"><input id="showParcels" type="checkbox" checked> Existing parcels</label>
+          <label class="lab-check"><input id="showBuildings" type="checkbox" checked> Existing buildings</label>
+          <label class="lab-check"><input id="showStreets" type="checkbox" checked> Streets + public realm</label>
+          <div class="lab-note">149 Peachtree St remains highlighted at every scale.</div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="surroundingLab">SURROUNDING BUILDINGS <span class="arr">▾</span></button>
+        <div class="lab-body" id="surroundingLab">
+          <label class="lab-check"><input id="buildMaxHeight" type="checkbox"> BUILD ALL LOTS TO MAX HEIGHT</label>
+          <label class="lab-check"><input id="buildMaxFAR" type="checkbox"> BUILD ALL LOTS TO MAX FAR</label>
+          <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Surrounding build-out</span><span class="lab-value" id="buildoutVal">0%</span></div>
+            <input id="buildoutSlider" type="range" min="0" max="100" value="0" step="1"></div>
+          <div class="lab-row"><div class="lab-label">Massing strategy</div>
+            <select class="lab-select" id="massingStrategy"><option value="compact">COMPACT</option><option value="midrise">MID-RISE</option><option value="lowrise">LOW-RISE</option><option value="courtyard">COURTYARD</option><option value="streetwall">STREET WALL</option><option value="towerpodium">TOWER / PODIUM</option><option value="user">USER DEFINED</option></select>
+          </div>
+          <div id="parcelInfo" class="parcel-info"><div class="lab-note">Click a surrounding parcel in the model to edit it.</div></div>
+          <div class="lab-buttons" style="margin-top:7px"><button class="lab-btn" id="buildSelectedMax">BUILD TO MAX</button><button class="lab-btn" id="restoreSelected">RESTORE EXISTING</button><button class="lab-btn" id="customSelected">CUSTOM</button><button class="lab-btn stamp" id="clearSelection">CLEAR SELECTION</button></div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="zoningLab">ZONING <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="zoningLab">
+          <div class="lab-row"><div class="lab-label">Existing zoning</div>
+            <select class="lab-select" id="zoningMode"><option value="off">OFF</option><option value="current" selected>CURRENT ZONING</option><option value="modified">MODIFIED ZONING</option><option value="user">USER-DEFINED ZONING</option></select>
+          </div>
+          <div class="lab-note">Surrounding parcels use their own baseline zoning parameters. Project-site constraints are not applied to context parcels.</div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="futureLab">FUTURE <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="futureLab">
+          <label class="lab-check"><input id="experimentalFuture" type="checkbox"> EXPERIMENTAL FUTURE</label>
+          <div id="futureControls" style="display:none">
+            <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Maximum FAR</span><span class="lab-value" id="futureFarVal">6.0</span></div><input id="futureFar" type="range" min=".5" max="15" value="6" step=".1"></div>
+            <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Maximum height</span><span class="lab-value" id="futureHeightVal">12 floors</span></div><input id="futureHeight" type="range" min="1" max="30" value="12" step="1"></div>
+            <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Lot coverage</span><span class="lab-value" id="futureCoverageVal">80%</span></div><input id="futureCoverage" type="range" min="0" max="100" value="80" step="1"></div>
+            <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Residential percentage</span><span class="lab-value" id="futureResVal">70%</span></div><input id="futureRes" type="range" min="0" max="100" value="70" step="1"></div>
+            <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Open space</span><span class="lab-value" id="futureOpenVal">15%</span></div><input id="futureOpen" type="range" min="0" max="50" value="15" step="1"></div>
+            <div class="lab-row"><div class="lab-row-top"><span class="lab-label">Setback</span><span class="lab-value" id="futureSetbackVal">10 ft</span></div><input id="futureSetback" type="range" min="0" max="50" value="10" step="1"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="streetsLab">PUBLIC REALM + PARCEL OPERATIONS <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="streetsLab">
+          <div class="lab-row"><div class="lab-label">Street experiment</div><select class="lab-select" id="streetMode"><option value="none">None</option><option>Pedestrian Street</option><option>Shared Street</option><option>Transit Street</option><option>Greenway / Linear Park</option><option>New Alley</option><option>Plaza</option><option>Market Street</option><option>Street Closure</option><option>Bike Connection</option><option>Pedestrian Passage</option></select></div>
+          <div class="lab-buttons"><button class="lab-btn" id="combineSelected">COMBINE SELECTED</button><button class="lab-btn" id="divideSelected">DIVIDE SELECTED</button><button class="lab-btn" id="restoreParcels">RESTORE PARCELS</button><button class="lab-btn" id="resetBaseline">RESET TO BASELINE</button></div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="complianceLab">COMPLIANCE <span class="arr">▾</span></button>
+        <div class="lab-body" id="complianceLab">
+          <div id="projectDashboard"></div>
+          <div class="lab-note">COMPLIANT = within stated range. WARNING = internally inconsistent or conceptually unresolved. NON-COMPLIANT = outside a stated requirement. EXPERIMENTAL = intentionally outside baseline controls.</div>
+        </div>
+      </div>
+
+      <div class="lab-panel">
+        <button data-lab-toggle="scenarioLab">SCENARIOS <span class="arr">▸</span></button>
+        <div class="lab-body closed" id="scenarioLab">
+          <div class="lab-buttons">
+            <button class="lab-btn" data-scenario="existing">01 EXISTING CONTEXT</button>
+            <button class="lab-btn" data-scenario="max">02 MAXIMUM CONTEXT</button>
+            <button class="lab-btn" data-scenario="six">03 SIX-STORY FUTURE</button>
+            <button class="lab-btn" data-scenario="commons">04 URBAN COMMONS</button>
+            <button class="lab-btn" data-scenario="high">05 HIGH DENSITY</button>
+            <button class="lab-btn" data-scenario="historic">06 HISTORIC / LOW-RISE</button>
+            <button class="lab-btn" data-scenario="experimental">07 EXPERIMENTAL FUTURE</button>
+            <button class="lab-btn stamp" data-scenario="user">08 USER DEFINED</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2>Envelope layers</h2>
+    <div id="layerList"></div>
+
+    <h2>Massing inputs</h2>
+    <div class="field">
+      <div class="field-top"><span class="field-label">Podium (base) floors</span><span class="field-value" id="vPodium">6</span></div>
+      <input type="range" id="podiumFloors" min="0" max="12" value="6" step="1">
+    </div>
+    <div class="field">
+      <div class="field-top"><span class="field-label">Tower floors above podium</span><span class="field-value" id="vTower">14</span></div>
+      <input type="range" id="towerFloors" min="0" max="55" value="14" step="1">
+    </div>
+    <div class="field">
+      <div class="field-top"><span class="field-label">Tower floorplate (% of lot)</span><span class="field-value" id="vFootprint">55%</span></div>
+      <input type="range" id="towerFootprint" min="20" max="100" value="55" step="5">
+    </div>
+    <div class="field">
+      <div class="field-top"><span class="field-label">Residential share of area</span><span class="field-value" id="vMix">75%</span></div>
+      <input type="range" id="useMix" min="0" max="100" value="75" step="5">
+    </div>
+    <div class="field">
+      <div class="field-top"><span class="field-label">Sidewalk width (Pedestrian Space Plan)</span><span class="field-value" id="vSidewalk">21 ft</span></div>
+      <select id="sidewalkWidth">
+        <option value="15">15 ft total / 10 ft clear</option>
+        <option value="17">17 ft total / 12 ft clear</option>
+        <option value="19">19 ft total / 14 ft clear</option>
+        <option value="20">20 ft total / 15 ft clear</option>
+        <option value="21" selected>21 ft total / 16 ft clear</option>
+        <option value="23">23 ft total / 18 ft clear</option>
+      </select>
+    </div>
+
+    <div class="field-label" style="margin-top:14px;">Study massing options (report §87)</div>
+    <div class="presets" id="presetRow"></div>
+
+    <h2>FAR check <span class="h2-note">Net Lot Area basis</span></h2>
+    <div id="farReadout"></div>
+
+    <button class="toggle-panel-btn" id="procToggleBtn">
+      <span>Permitted uses &amp; procedural requirements</span><span class="arrow">▸</span>
+    </button>
+    <div id="procPanel"></div>
+
+    <div class="footnote">
+      Model is a study aid built from the uploaded zoning summary for this parcel — not a substitute for the Atlanta Code, official GIS parcel data, or a Special Administrative Permit review. Verify frontage, historic overlay status and exact Pedestrian Space Plan designation before relying on this for design development.
+    </div>
+  </div>
+
+  <div id="canvasWrap">
+    <canvas id="canvas3d"></canvas>
+    <div id="hud"></div><div id="contextHud"></div><div id="selectionHint">Click a surrounding parcel · Shift-click to select multiple</div>
+    <button id="fitBtn">Fit view</button>
+    <div id="labelLayer"></div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================================
+   CONSTANTS
+========================================================================= */
+const LOT_AREA   = 29071;             // SF, per property records
+const LOT_WIDTH  = 150;               // ft, along Peachtree frontage (X)
+const LOT_DEPTH  = LOT_AREA / LOT_WIDTH; // ft, 200.32 (Z)
+const GROUND_H   = 14;                // ft, required sidewalk-level floor-to-ceiling
+const FLOOR_H    = 11;                // ft, typical upper floor
+const RES_FAR_CAP = 25, NONRES_FAR_CAP = 25, COMBINED_FAR_CAP = 32;
+
+const COLOR = {
+  ground:      0xcbbfa0,
+  lotLine:     0x23281f,
+  street:      0x24211c,
+  furniture:   0x5f7a5a,
+  clearzone:   0xd8d0ba,
+  supplemental:0xa13d2c,
+  streetWall:  0xe8b04b,
+  activeFloor: 0x2f8f9d,
+  massBase:    0xcabb9c,
+  massBaseB:   0x8d8574,
+  massShaft:   0xb5573c,
+  massCap:     0xe7ddc8,
+  uos:         0x4f7d4a,
+  loading:     0x565650,
+  mech:        0x7a7a72,
+  envRes:      0x4f8fe0,
+  envNonres:   0xe0a24f,
+  envCombined: 0x9a5fe0,
+  heightMark:  0x4fd3c4
+};
+
+/* =========================================================================
+   LAYER DEFINITIONS  (drives sidebar checkboxes + legend)
+========================================================================= */
+const LAYERS = [
+  {id:'parcel',   label:'Parcel line, coverage &amp; yards', detail:'No max coverage · no min side/rear yard', color:COLOR.lotLine, on:true},
+  {id:'sidewalk', label:'Sidewalk &amp; street trees',        detail:'Furniture/tree zone 5 ft + clear zone', color:COLOR.clearzone, on:true},
+  {id:'supplemental', label:'Supplemental zone',               detail:'Prohibited in Terminus (SA6)', color:COLOR.supplemental, on:false},
+  {id:'streetwall', label:'36 ft minimum street wall',         detail:'Façade must rise 36 ft before stepback', color:COLOR.streetWall, on:true},
+  {id:'activefloor', label:'Active ground-floor use',           detail:'14 ft min floor-to-ceiling at sidewalk level', color:COLOR.activeFloor, on:true},
+  {id:'massing',  label:'Building massing',                   detail:'Podium + tower, from sliders below', color:COLOR.massBase, on:true},
+  {id:'bsc',      label:'Base / shaft / cap massing',          detail:'§16-18A.020 — SA6 &amp; SA7 façade organization', color:COLOR.massShaft, on:false},
+  {id:'uos',      label:'Residential usable open space',       detail:'5% of residential floor area, min.', color:COLOR.uos, on:false},
+  {id:'loading',  label:'Loading &amp; service zone',           detail:'12×35 ft berths, 14 ft clearance, screened', color:COLOR.loading, on:false},
+  {id:'mech',     label:'Screened rooftop mechanical',          detail:'Must be screened, integrated into cap', color:COLOR.mech, on:false},
+  {id:'envelopes',label:'FAR reference rings',                  detail:'25 / 25 / 32 max FAR marker rings', color:COLOR.envCombined, on:true},
+  {id:'noheight', label:'No maximum height marker',             detail:'SPI-1 table sets no height ceiling', color:COLOR.heightMark, on:true},
+];
+
+const PRESETS = [
+  {key:'A', name:'A · Low block',   podium:7, tower:0,  footprint:100, mix:70},
+  {key:'B', name:'B · Mid-rise',    podium:8, tower:4,  footprint:90,  mix:65},
+  {key:'C', name:'C · Res. tower',  podium:4, tower:20, footprint:55,  mix:100},
+  {key:'D', name:'D · Mixed tower', podium:6, tower:27, footprint:55,  mix:60},
+  {key:'E', name:'E · Max density', podium:8, tower:40, footprint:62,  mix:55},
+];
+
+/* =========================================================================
+   STATE
+========================================================================= */
+const state = {
+  podiumFloors: 6,
+  towerFloors: 14,
+  towerFootprintPct: 55,
+  useMixPct: 75,
+  sidewalkWidth: 21,
+  activePreset: null,
+  layers: {}
+};
+LAYERS.forEach(l => state.layers[l.id] = l.on);
+
+/* =========================================================================
+   FAR MATH
+========================================================================= */
+function computeFAR(){
+  const podiumSF = state.podiumFloors * LOT_AREA;
+  const towerFootprintSF = LOT_AREA * (state.towerFootprintPct/100);
+  const towerSF = state.towerFloors * towerFootprintSF;
+  const totalSF = podiumSF + towerSF;
+  const resSF = totalSF * (state.useMixPct/100);
+  const nonresSF = totalSF - resSF;
+  return {
+    totalSF, resSF, nonresSF,
+    resFAR: resSF/LOT_AREA,
+    nonresFAR: nonresSF/LOT_AREA,
+    combinedFAR: totalSF/LOT_AREA
+  };
+}
+
+/* =========================================================================
+   THREE.JS SETUP
+========================================================================= */
+const canvas = document.getElementById('canvas3d');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f2438);
+scene.fog = new THREE.Fog(0x0f2438, 500, 2400);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 1, 5000);
+
+// lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+sun.position.set(300, 500, 200);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x88bfe0, 0.3);
+fill.position.set(-300, 200, -300);
+scene.add(fill);
+
+// ground grid (context, outside the lot)
+const grid = new THREE.GridHelper(1600, 80, 0x1c3f5c, 0x162e42);
+grid.position.y = -0.05;
+scene.add(grid);
+
+// content group — rebuilt on every input change
+const content = new THREE.Group();
+scene.add(content);
+
+/* ---------- camera (manual orbit) ---------- */
+const cam = {azimuth: -0.65, elevation: 0.42, radius: 620, target: new THREE.Vector3(0, 40, 0)};
+function updateCamera(){
+  const r = cam.radius;
+  const x = r * Math.cos(cam.elevation) * Math.sin(cam.azimuth);
+  const y = r * Math.sin(cam.elevation);
+  const z = r * Math.cos(cam.elevation) * Math.cos(cam.azimuth);
+  camera.position.set(cam.target.x + x, cam.target.y + y, cam.target.z + z);
+  camera.lookAt(cam.target);
+}
+
+let dragging = false, lastX=0, lastY=0;
+canvas.addEventListener('pointerdown', e=>{dragging=true; lastX=e.clientX; lastY=e.clientY; canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerup', ()=>{dragging=false; canvas.classList.remove('dragging');});
+canvas.addEventListener('pointerleave', ()=>{dragging=false; canvas.classList.remove('dragging');});
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx = e.clientX-lastX, dy = e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  cam.azimuth -= dx*0.006;
+  cam.elevation = Math.max(0.07, Math.min(1.45, cam.elevation + dy*0.005));
+  updateCamera();
+});
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  cam.radius = Math.max(80, Math.min(2200, cam.radius * (1 + e.deltaY*0.001)));
+  updateCamera();
+}, {passive:false});
+
+function resize(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+/* =========================================================================
+   GEOMETRY HELPERS
+========================================================================= */
+function box(w,h,d, color, opacity=1, wire=true){
+  const geo = new THREE.BoxGeometry(w,h,d);
+  const mat = new THREE.MeshLambertMaterial({color, transparent:opacity<1, opacity});
+  const mesh = new THREE.Mesh(geo, mat);
+  if(wire){
+    const edges = new THREE.EdgesGeometry(geo);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color:0x1a1a1a, transparent:true, opacity:Math.min(1,opacity+0.35)}));
+    mesh.add(line);
+  }
+  return mesh;
+}
+function flatStrip(w,d, color, opacity=1){
+  const geo = new THREE.PlaneGeometry(w,d);
+  const mat = new THREE.MeshBasicMaterial({color, transparent:opacity<1, opacity, side:THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI/2;
+  return mesh;
+}
+function ringOutline(w,d,y,color){
+  const pts = [
+    new THREE.Vector3(-w/2,y,-d/2), new THREE.Vector3(w/2,y,-d/2),
+    new THREE.Vector3(w/2,y,d/2), new THREE.Vector3(-w/2,y,d/2),
+    new THREE.Vector3(-w/2,y,-d/2)
+  ];
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  return new THREE.Line(geo, new THREE.LineBasicMaterial({color}));
+}
+function dashedVerticalLine(x,z,y0,y1,color){
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,y0,z), new THREE.Vector3(x,y1,z)]);
+  const line = new THREE.Line(geo, new THREE.LineDashedMaterial({color, dashSize:6, gapSize:4}));
+  line.computeLineDistances();
+  return line;
+}
+
+/* floating HTML labels tied to 3D positions */
+let liveLabels = []; // {pos:THREE.Vector3, el}
+const labelLayer = document.getElementById('labelLayer');
+function addLabel(text, pos){
+  const el = document.createElement('div');
+  el.className='label3d';
+  el.textContent = text;
+  labelLayer.appendChild(el);
+  liveLabels.push({pos, el});
+}
+function clearLabels(){
+  liveLabels.forEach(l=>l.el.remove());
+  liveLabels = [];
+}
+
+/* =========================================================================
+   SCENE BUILD
+========================================================================= */
+function rebuild(){
+  content.clear();
+  clearLabels();
+
+  const L = state.layers;
+  const halfW = LOT_WIDTH/2, halfD = LOT_DEPTH/2;
+  const streetZ = -halfD; // Peachtree frontage on -Z edge
+
+  /* ---- parcel, coverage, yards ---- */
+  if(L.parcel){
+    content.add(flatStrip(LOT_WIDTH, LOT_DEPTH, COLOR.ground, 1));
+    content.add(ringOutline(LOT_WIDTH, LOT_DEPTH, 0.2, COLOR.lotLine));
+  }
+
+  /* ---- sidewalk & street ---- */
+  if(L.sidewalk){
+    const sw = state.sidewalkWidth;
+    const furnitureW = 5;
+    const clearW = sw - furnitureW;
+    // street pavement (context)
+    const street = flatStrip(LOT_WIDTH+80, 40, COLOR.street, 1);
+    street.position.set(0, 0.05, streetZ - sw - 20);
+    content.add(street);
+    // furniture/tree zone (closest to curb)
+    const furn = flatStrip(LOT_WIDTH, furnitureW, COLOR.furniture, 1);
+    furn.position.set(0, 0.08, streetZ - sw + furnitureW/2);
+    content.add(furn);
+    // clear pedestrian zone
+    const clr = flatStrip(LOT_WIDTH, clearW, COLOR.clearzone, 1);
+    clr.position.set(0, 0.08, streetZ - clearW/2);
+    content.add(clr);
+    addLabel('PEACHTREE ST SW', new THREE.Vector3(0, 2, streetZ - sw - 34));
+  }
+
+  /* ---- supplemental zone (prohibited) ---- */
+  if(L.supplemental){
+    const line = dashedVerticalLine(-halfW, streetZ, 0, 40, COLOR.supplemental);
+    content.add(line);
+    const line2 = dashedVerticalLine(halfW, streetZ, 0, 40, COLOR.supplemental);
+    content.add(line2);
+    addLabel('SUPPLEMENTAL ZONE — PROHIBITED (SA6)', new THREE.Vector3(0, 42, streetZ));
+  }
+
+  /* ---- massing (podium + tower) ---- */
+  const podiumFloors = state.podiumFloors, towerFloors = state.towerFloors;
+  const podiumH = podiumFloors>0 ? (GROUND_H + Math.max(0,podiumFloors-1)*FLOOR_H) : 0;
+  const towerFootFrac = (state.lotCoverage ?? state.towerFootprintPct)/100;
+  const towerW = LOT_WIDTH*Math.sqrt(towerFootFrac);
+  const towerD = LOT_DEPTH*Math.sqrt(towerFootFrac);
+  const towerGroundH = podiumFloors===0 ? GROUND_H : 0;
+  const towerFloorsAboveGround = podiumFloors===0 ? Math.max(0,towerFloors-1) : towerFloors;
+  const towerH = towerFloors>0 ? (towerGroundH + towerFloorsAboveGround*FLOOR_H) : 0;
+  const totalH = podiumH + towerH;
+
+  if(L.massing){
+    if(podiumFloors>0){
+      const useBase = L.bsc;
+      const baseW = LOT_WIDTH*Math.sqrt(Math.max(.01,Math.min(1,state.lotCoverage/100)));
+       const baseD = LOT_DEPTH*Math.sqrt(Math.max(.01,Math.min(1,state.lotCoverage/100)));
+       const pMesh = box(baseW, podiumH, baseD, useBase?COLOR.massBaseB:COLOR.massBase, 0.92);
+      pMesh.position.set(0, podiumH/2, 0);
+      content.add(pMesh);
+    }
+    if(towerFloors>0){
+      if(L.bsc){
+        const total = podiumFloors + towerFloors;
+        const capFloors = Math.min(towerFloors, total>=8 ? 3 : 1);
+        const shaftFloors = towerFloors - capFloors;
+        const shaftH = shaftFloors>0 ? (shaftFloors*FLOOR_H + (podiumFloors===0?towerGroundH:0)) : 0;
+        const capH = capFloors*FLOOR_H;
+        let y = podiumH;
+        if(shaftH>0){
+          const shaftMesh = box(towerW, shaftH, towerD, COLOR.massShaft, 0.92);
+          shaftMesh.position.set(0, y+shaftH/2, 0);
+          content.add(shaftMesh);
+          y += shaftH;
+        }
+        const capMesh = box(towerW, capH, towerD, COLOR.massCap, 0.95);
+        capMesh.position.set(0, y+capH/2, 0);
+        content.add(capMesh);
+      } else {
+        const tMesh = box(towerW, towerH, towerD, 0xd8cba8, 0.92);
+        tMesh.position.set(0, podiumH + towerH/2, 0);
+        content.add(tMesh);
+      }
+    }
+    if(totalH>0){
+      addLabel(`${podiumFloors+towerFloors} floors · ${Math.round(totalH)} ft`, new THREE.Vector3(halfW+6, totalH, 0));
+    }
+  }
+
+  /* ---- 36 ft street wall plane ---- */
+  if(L.streetwall){
+    const geo = new THREE.PlaneGeometry(LOT_WIDTH, 36);
+    const mat = new THREE.MeshBasicMaterial({color:COLOR.streetWall, transparent:true, opacity:0.35, side:THREE.DoubleSide});
+    const plane = new THREE.Mesh(geo, mat);
+    plane.position.set(0, 18, streetZ+0.3);
+    content.add(plane);
+    addLabel('36 ft min. façade before stepback', new THREE.Vector3(0, 37, streetZ));
+  }
+
+  /* ---- active ground floor ---- */
+  if(L.activefloor){
+    const footW = podiumFloors>0 ? LOT_WIDTH : towerW;
+    const footD = podiumFloors>0 ? LOT_DEPTH : towerD;
+    const mesh = box(footW+1, GROUND_H, footD+1, COLOR.activeFloor, 0.28, false);
+    mesh.position.set(0, GROUND_H/2, 0);
+    content.add(mesh);
+  }
+
+  /* ---- residential usable open space ---- */
+  if(L.uos && totalH>0){
+    const far = computeFAR();
+    const uosSF = far.resSF*0.05;
+    const roofW = towerFloors>0 ? towerW : LOT_WIDTH;
+    const roofD = towerFloors>0 ? towerD : LOT_DEPTH;
+    const roofArea = roofW*roofD;
+    const frac = Math.max(0.05, Math.min(1, uosSF/roofArea));
+    const w = roofW*Math.sqrt(frac), d = roofD*Math.sqrt(frac);
+    const mesh = box(w, 2, d, COLOR.uos, 0.85);
+    mesh.position.set(0, totalH+1, 0);
+    content.add(mesh);
+    addLabel(`Usable open space ≈ ${Math.round(uosSF).toLocaleString()} SF (5% of res. area)`, new THREE.Vector3(0, totalH+6, roofD/2));
+  }
+
+  /* ---- loading / service zone ---- */
+  if(L.loading){
+    const w=35, d=12, h=14;
+    const mesh = box(w, h, d, COLOR.loading, 0.9);
+    mesh.position.set(halfW-w/2-4, h/2, halfD-d/2-4);
+    content.add(mesh);
+    addLabel('Loading (12×35, 14 ft clear, screened)', new THREE.Vector3(halfW-w/2-4, h+3, halfD-d/2-4));
+  }
+
+  /* ---- mechanical screening ---- */
+  if(L.mech && totalH>0){
+    const w=18,d=14,h=9;
+    const mesh = box(w,h,d, COLOR.mech, 0.9);
+    mesh.position.set(-halfW+w/2+3, totalH+h/2, halfD-d/2-3);
+    content.add(mesh);
+    addLabel('Screened mechanical', new THREE.Vector3(-halfW+w/2+3, totalH+h+3, halfD-d/2-3));
+  }
+
+  /* ---- FAR reference rings ---- */
+  if(L.envelopes){
+    const resY = RES_FAR_CAP*FLOOR_H;      // full-lot-coverage equivalent
+    const combY = COMBINED_FAR_CAP*FLOOR_H;
+    [[-halfW,-halfD],[halfW,-halfD],[halfW,halfD],[-halfW,halfD]].forEach(([x,z])=>{
+      content.add(dashedVerticalLine(x,z,0,combY+15, 0x3a5b70));
+    });
+    content.add(ringOutline(LOT_WIDTH, LOT_DEPTH, resY, COLOR.envRes));
+    content.add(ringOutline(LOT_WIDTH, LOT_DEPTH, combY, COLOR.envCombined));
+    addLabel('25 FAR line — residential OR non-residential max', new THREE.Vector3(halfW+2, resY, -halfD));
+    addLabel('32 FAR line — combined max', new THREE.Vector3(halfW+2, combY, -halfD));
+  }
+
+  /* ---- no max height marker ---- */
+  if(L.noheight){
+    const baseY = Math.max(totalH, 20);
+    const topY = baseY + 120;
+    content.add(dashedVerticalLine(0,0,baseY,topY, COLOR.heightMark));
+    const coneGeo = new THREE.ConeGeometry(4,12,4);
+    const cone = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({color:COLOR.heightMark}));
+    cone.position.set(0, topY+6, 0);
+    content.add(cone);
+    addLabel('No maximum height in SPI-1 table', new THREE.Vector3(0, topY+16, 0));
+  }
+
+  updateHud(totalH, podiumFloors, towerFloors);
+}
+
+function updateHud(totalH, podiumFloors, towerFloors){
+  const far = computeFAR();
+  document.getElementById('hud').innerHTML =
+    `<b>${podiumFloors+towerFloors}</b> floors modeled &nbsp;·&nbsp; <b>${Math.round(totalH)} ft</b> tall<br>`+
+    `Combined FAR <b>${far.combinedFAR.toFixed(1)}</b> of 32 max`;
+}
+
+/* =========================================================================
+   SIDEBAR — build layer checkboxes
+========================================================================= */
+const layerList = document.getElementById('layerList');
+LAYERS.forEach(l=>{
+  const row = document.createElement('label');
+  row.className='layer-row';
+  row.innerHTML = `
+    <input type="checkbox" ${l.on?'checked':''} data-layer="${l.id}">
+    <span class="swatch" style="background:#${l.color.toString(16).padStart(6,'0')}"></span>
+    <span class="layer-text">
+      <div class="layer-label">${l.label}</div>
+      <div class="layer-detail">${l.detail}</div>
+    </span>`;
+  layerList.appendChild(row);
+});
+layerList.addEventListener('change', e=>{
+  const id = e.target.getAttribute('data-layer');
+  if(!id) return;
+  state.layers[id] = e.target.checked;
+  rebuild();
+});
+
+/* ---- sliders ---- */
+function bindRange(id, valId, fmt, onchange){
+  const el = document.getElementById(id);
+  const vEl = document.getElementById(valId);
+  el.addEventListener('input', ()=>{
+    vEl.textContent = fmt(el.value);
+    onchange(Number(el.value));
+    state.activePreset = null;
+    renderPresets();
+    rebuild();
+    renderFAR();
+  });
+}
+bindRange('podiumFloors','vPodium', v=>v, v=>state.podiumFloors=v);
+bindRange('towerFloors','vTower', v=>v, v=>state.towerFloors=v);
+bindRange('towerFootprint','vFootprint', v=>v+'%', v=>state.towerFootprintPct=v);
+bindRange('useMix','vMix', v=>v+'%', v=>state.useMixPct=v);
+
+document.getElementById('sidewalkWidth').addEventListener('change', e=>{
+  state.sidewalkWidth = Number(e.target.value);
+  const opt = e.target.options[e.target.selectedIndex].text;
+  document.getElementById('vSidewalk').textContent = e.target.value+' ft';
+  rebuild();
+});
+
+/* ---- presets ---- */
+const presetRow = document.getElementById('presetRow');
+function renderPresets(){
+  presetRow.innerHTML='';
+  PRESETS.forEach(p=>{
+    const b = document.createElement('button');
+    b.className = 'preset-btn' + (state.activePreset===p.key ? ' active':'');
+    b.textContent = p.key;
+    b.title = p.name;
+    b.addEventListener('click', ()=>{
+      state.podiumFloors=p.podium; state.towerFloors=p.tower;
+      state.towerFootprintPct=p.footprint; state.useMixPct=p.mix;
+      state.activePreset = p.key;
+      document.getElementById('podiumFloors').value=p.podium;
+      document.getElementById('vPodium').textContent=p.podium;
+      document.getElementById('towerFloors').value=p.tower;
+      document.getElementById('vTower').textContent=p.tower;
+      document.getElementById('towerFootprint').value=p.footprint;
+      document.getElementById('vFootprint').textContent=p.footprint+'%';
+      document.getElementById('useMix').value=p.mix;
+      document.getElementById('vMix').textContent=p.mix+'%';
+      renderPresets();
+      rebuild();
+      renderFAR();
+    });
+    presetRow.appendChild(b);
+  });
+}
+renderPresets();
+
+/* ---- FAR readout ---- */
+function statusOf(val,cap){
+  const r = val/cap;
+  if(r>1) return {word:'OVER CAP', color:'var(--bad)'};
+  if(r>0.9) return {word:'NEAR CAP', color:'var(--warn)'};
+  return {word:'WITHIN CAP', color:'var(--ok)'};
+}
+function farRow(name, val, cap){
+  const pct = Math.min(100, (val/cap)*100);
+  const st = statusOf(val,cap);
+  return `
+    <div class="far-bar-wrap">
+      <div class="far-bar-top">
+        <span class="far-bar-name">${name}</span>
+        <span class="far-bar-num">${val.toFixed(1)} / ${cap} FAR</span>
+      </div>
+      <div class="far-track"><div class="far-fill" style="width:${pct}%;background:${st.color}"></div></div>
+      <span class="status-pill" style="background:${st.color}22;color:${st.color}">${st.word}</span>
+    </div>`;
+}
+function renderFAR(){
+  const f = computeFAR();
+  document.getElementById('farReadout').innerHTML =
+    farRow('Residential', f.resFAR, RES_FAR_CAP) +
+    farRow('Non-residential', f.nonresFAR, NONRES_FAR_CAP) +
+    farRow('Combined', f.combinedFAR, COMBINED_FAR_CAP) +
+    `<div class="far-cap-label">≈ ${Math.round(f.totalSF).toLocaleString()} SF total on a ${LOT_AREA.toLocaleString()} SF net lot area</div>`;
+}
+renderFAR();
+
+/* ---- procedural / use panel ---- */
+const procBtn = document.getElementById('procToggleBtn');
+const procPanel = document.getElementById('procPanel');
+procPanel.innerHTML = `
+  <div class="proc-group">
+    <h3>PERMITTED (P) IN TERMINUS</h3>
+    <ul>
+      <li>Single-family, two-family &amp; multi-family dwellings; SRO; supportive housing; hotels/motels</li>
+      <li>Short-term rentals (subject to separate citywide rules)</li>
+      <li>Retail, restaurants, banks, offices, schools, museums/galleries, commercial recreation</li>
+      <li>Light manufacturing ≤10,000 SF with no heavy equipment or off-site impact</li>
+    </ul>
+  </div>
+  <div class="proc-group">
+    <h3>SPECIAL USE PERMIT (SUP)</h3>
+    <ul>
+      <li>Religious worship facilities, hospitals, nursing/assisted living</li>
+      <li>Independent parking deck within the Parking Limitation District</li>
+    </ul>
+  </div>
+  <div class="proc-group">
+    <h3>PROHIBITED IN TERMINUS</h3>
+    <ul>
+      <li>Drive-through / drive-in facilities of any kind</li>
+      <li>Service stations &amp; car washes</li>
+      <li>Standalone park-for-hire surface lots</li>
+      <li>School-affiliated dormitories · sports arenas as-of-right</li>
+    </ul>
+  </div>
+  <div class="proc-group">
+    <h3>PROCEDURAL TRIGGERS</h3>
+    <ul>
+      <li><b>SAP:</b> Special Administrative Permit review required before any building permit in SPI districts</li>
+      <li><b>Design review:</b> §16-18A.020 — Urban Design Commission review for variations from SA6/SA7 façade rules</li>
+      <li><b>TMP:</b> Transportation Management Plan required for multifamily/office/hotel &gt;25,000 SF, before certificate of occupancy</li>
+      <li><b>Demolition:</b> can't demolish solely to create open space; removing ≥60% of a principal building triggers full SPI-1 redevelopment compliance</li>
+      <li><b>Historic:</b> Chapter 20 historic protections layer on top of SPI-1 and can control in a conflict — verify parcel-level status in City GIS (Whitehall St Retail Historic District is nearby, not confirmed on this parcel)</li>
+      <li><b>Zoning rewrite:</b> ATL Zoning 2.0 is an ongoing rewrite — this model reflects the existing SPI-1 code, still the applicable framework</li>
+    </ul>
+  </div>
+`;
+procBtn.addEventListener('click', ()=>{
+  const open = procPanel.classList.toggle('open');
+  procBtn.classList.toggle('open', open);
+  procBtn.querySelector('.arrow').textContent = open ? '▾' : '▸';
+});
+
+/* ---- fit view ---- */
+document.getElementById('fitBtn').addEventListener('click', ()=>{
+  const f = computeFAR();
+  const podiumH = state.podiumFloors>0 ? (GROUND_H + Math.max(0,state.podiumFloors-1)*FLOOR_H) : 0;
+  const towerH = state.towerFloors>0 ? (FLOOR_H*state.towerFloors) : 0;
+  const totalH = podiumH+towerH;
+  cam.radius = Math.max(260, totalH*1.7);
+  cam.target.set(0, totalH*0.35, 0);
+  cam.azimuth = -0.65; cam.elevation = 0.42;
+  updateCamera();
+});
+
+/* =========================================================================
+   LABEL PROJECTION + RENDER LOOP
+========================================================================= */
+function updateLabels(){
+  const rect = canvas.getBoundingClientRect();
+  const v = new THREE.Vector3();
+  liveLabels.forEach(l=>{
+    v.copy(l.pos).project(camera);
+    const visible = v.z < 1;
+    const x = (v.x*0.5+0.5)*rect.width;
+    const y = (-v.y*0.5+0.5)*rect.height;
+    l.el.style.display = visible ? 'block':'none';
+    l.el.style.left = x+'px';
+    l.el.style.top = y+'px';
+  });
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+  updateLabels();
+}
+
+/* =========================================================================
+   INIT
+========================================================================= */
+resize();
+updateCamera();
+rebuild();
+animate();
+
+/* =========================================================================
+   URBAN DESIGN LAB EXTENSION
+   Extends the existing state/model rather than replacing it.
+========================================================================= */
+(function(){
+  // Preserve one central state object: extend the existing project state.
+  Object.assign(state, {
+    siteArea: 29071,
+    enforceBoundary: true,
+    zeroLotLine: true,
+    lotCoverage: 75,
+    setback: 0,
+    groundProgram: 'Retail',
+    residentialType: 'Apartments',
+    residentialFAR: 3.0,
+    totalProjectFAR: 4.0,
+    projectFloors: 20,
+    openSpaceFAR: 1.0,
+    openSpaceType: 'Courtyard',
+    daylightEnforce: true,
+    contextScale: 3,
+    contextState: 'existing',
+    showParcels: true,
+    showBuildings: true,
+    showStreets: true,
+    buildMaxHeight: false,
+    buildMaxFAR: false,
+    surroundingBuildout: 0,
+    massingStrategy: 'compact',
+    zoningMode: 'current',
+    experimentalFuture: false,
+    futureFar: 6,
+    futureHeight: 12,
+    futureCoverage: 80,
+    futureRes: 70,
+    futureOpen: 15,
+    futureSetback: 10,
+    streetMode: 'none',
+    selectedParcels: [],
+    communityFunctions: ['Lounge','Fitness','Courtyard'],
+    unitMix: {
+      'Studio / Micro': {size: 450, count: 20},
+      '1-Bedroom': {size: 650, count: 40},
+      '2-Bedroom': {size: 900, count: 20},
+      '3-Bedroom': {size: 1100, count: 0},
+      'Shared / Co-Living': {size: 500, count: 0},
+      'Accessible Unit': {size: 700, count: 0}
+    },
+    parcelOverrides: {},
+    parcelBase: null
+  });
+
+  const communityOptions = ['Common Kitchen','Dining / Commons','Study / Academic Space','Lounge','Fitness','Maker Space','Laundry Commons','Game / Recreation','Rooftop Commons','Courtyard','Garden','Community Room','Co-Working','Event Space','Childcare','Workshop','Bike Hub','Other'];
+  const unitOptions = Object.keys(state.unitMix);
+
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){ return Math.round(n).toLocaleString(); }
+  function labStatus(word){
+    const cls = word==='COMPLIANT'?'ok':word==='WARNING'?'warn':word==='NON-COMPLIANT'?'bad':'exp';
+    return '<span class="lab-status '+cls+'">'+word+'</span>';
+  }
+  function rangeStatus(v,min,max,experimental){
+    if(experimental) return 'EXPERIMENTAL';
+    if(v<min || v>max) return 'NON-COMPLIANT';
+    return 'COMPLIANT';
+  }
+
+  // Community controls
+  $('communityChecks').innerHTML = communityOptions.map((x,i)=>
+    '<label class="lab-check"><input type="checkbox" data-community="'+x+'" '+(state.communityFunctions.includes(x)?'checked':'')+'> '+x+'</label>'
+  ).join('');
+  $('communityChecks').addEventListener('change', function(e){
+    if(!e.target.dataset.community) return;
+    const n=e.target.dataset.community;
+    if(e.target.checked && !state.communityFunctions.includes(n)) state.communityFunctions.push(n);
+    if(!e.target.checked) state.communityFunctions=state.communityFunctions.filter(x=>x!==n);
+    renderLab();
+  });
+
+  $('unitMixControls').innerHTML = unitOptions.map(x=>{
+    const u=state.unitMix[x];
+    return '<div class="lab-row" style="margin:6px 0"><label class="lab-check"><input type="checkbox" data-unit="'+x+'" '+(u.count>0?'checked':'')+'> '+x+'</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px"><input class="lab-number" data-size="'+x+'" type="number" min="200" max="2000" step="25" value="'+u.size+'" title="Unit size"><input class="lab-number" data-count="'+x+'" type="number" min="0" max="1000" step="1" value="'+u.count+'" title="Unit count"></div></div>';
+  }).join('');
+  $('unitMixControls').addEventListener('change',function(e){
+    const name=e.target.dataset.unit || e.target.dataset.size || e.target.dataset.count;
+    if(!name) return;
+    if(e.target.dataset.unit) state.unitMix[name].count=e.target.checked ? Math.max(1,state.unitMix[name].count||20) : 0;
+    if(e.target.dataset.size) state.unitMix[name].size=Number(e.target.value)||500;
+    if(e.target.dataset.count) state.unitMix[name].count=Math.max(0,Number(e.target.value)||0);
+    renderLab(); rebuildUrban();
+  });
+
+  // Collapse panels
+  document.querySelectorAll('[data-lab-toggle]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const body=$(btn.dataset.labToggle), closed=body.classList.toggle('closed');
+      btn.querySelector('.arr').textContent=closed?'▸':'▾';
+    });
+  });
+
+  function bind(id, fn, display){
+    const el=$(id);
+    el.addEventListener('input',()=>{
+      fn(Number(el.value));
+      if(display) $(display[0]).textContent=display[1](Number(el.value));
+      renderLab(); rebuildUrban();
+    });
+  }
+  bind('labCoverage',v=>state.lotCoverage=v,['labCoverageVal',v=>v+'%']);
+  bind('labSetback',v=>state.setback=v,['labSetbackVal',v=>v+' ft']);
+  bind('labResFar',v=>state.residentialFAR=v,['labResFarVal',v=>v.toFixed(1)]);
+  bind('labTotalFar',v=>state.totalProjectFAR=v,['labTotalFarVal',v=>v.toFixed(1)]);
+  bind('labFloors',v=>{state.projectFloors=v; syncProjectFloors();},['labFloorsVal',v=>v]);
+  bind('labOpenFar',v=>state.openSpaceFAR=v,['labOpenFarVal',v=>v.toFixed(1)]);
+  bind('buildoutSlider',v=>state.surroundingBuildout=v,['buildoutVal',v=>v+'%']);
+  bind('futureFar',v=>state.futureFar=v,['futureFarVal',v=>v.toFixed(1)]);
+  bind('futureHeight',v=>state.futureHeight=v,['futureHeightVal',v=>v+' floors']);
+  bind('futureCoverage',v=>state.futureCoverage=v,['futureCoverageVal',v=>v+'%']);
+  bind('futureRes',v=>state.futureRes=v,['futureResVal',v=>v+'%']);
+  bind('futureOpen',v=>state.futureOpen=v,['futureOpenVal',v=>v+'%']);
+  bind('futureSetback',v=>state.futureSetback=v,['futureSetbackVal',v=>v+' ft']);
+
+  $('zeroLotLine').addEventListener('change',e=>{state.zeroLotLine=e.target.checked;$('setbackRow').style.display=e.target.checked?'none':'block';rebuildUrban();});
+  $('enforceBoundary').addEventListener('change',e=>{state.enforceBoundary=e.target.checked;rebuildUrban();});
+  $('groundProgram').addEventListener('change',e=>{state.groundProgram=e.target.value;rebuildUrban();});
+  $('resType').addEventListener('change',e=>{state.residentialType=e.target.value;rebuildUrban();});
+  $('openType').addEventListener('change',e=>{state.openSpaceType=e.target.value;rebuildUrban();});
+  $('daylightEnforce').addEventListener('change',e=>{state.daylightEnforce=e.target.checked;renderLab();});
+  $('contextScale').addEventListener('change',e=>{state.contextScale=Number(e.target.value);rebuildUrban();});
+  $('contextState').addEventListener('change',e=>{state.contextState=e.target.value;rebuildUrban();});
+  ['showParcels','showBuildings','showStreets'].forEach(id=>$(id).addEventListener('change',e=>{state[id]=e.target.checked;rebuildUrban();}));
+  $('buildMaxHeight').addEventListener('change',e=>{state.buildMaxHeight=e.target.checked;if(e.target.checked)state.contextState='max';rebuildUrban();});
+  $('buildMaxFAR').addEventListener('change',e=>{state.buildMaxFAR=e.target.checked;if(e.target.checked)state.contextState='max';rebuildUrban();});
+  $('massingStrategy').addEventListener('change',e=>{state.massingStrategy=e.target.value;rebuildUrban();});
+  $('zoningMode').addEventListener('change',e=>{state.zoningMode=e.target.value;rebuildUrban();});
+  $('experimentalFuture').addEventListener('change',e=>{state.experimentalFuture=e.target.checked;$('futureControls').style.display=e.target.checked?'block':'none';if(e.target.checked)state.contextScale=4;rebuildUrban();});
+  $('streetMode').addEventListener('change',e=>{state.streetMode=e.target.value;rebuildUrban();});
+
+  function syncProjectFloors(){
+    const n=Math.max(0,state.projectFloors);
+    // Keep existing podium/tower controls functional while making project floors a connected input.
+    state.podiumFloors=Math.min(8,n);
+    state.towerFloors=Math.max(0,n-state.podiumFloors);
+    ['podiumFloors','towerFloors'].forEach(id=>$(id).value=state[id]);
+    $('vPodium').textContent=state.podiumFloors;
+    $('vTower').textContent=state.towerFloors;
+  }
+
+  function projectMetrics(){
+    const area=state.siteArea;
+    const coverage=area*state.lotCoverage/100;
+    const resGSF=area*state.residentialFAR;
+    const totalGSF=area*state.totalProjectFAR;
+    const groundGSF=Math.max(0,Math.min(coverage,totalGSF-resGSF));
+    const unitCount=Object.values(state.unitMix).reduce((s,u)=>s+u.count,0);
+    const unitTypes=Object.values(state.unitMix).filter(u=>u.count>0).length;
+    const daylightPass=unitCount===0?0:(state.daylightEnforce?Math.max(0,Math.min(unitCount,Math.round(unitCount*(state.lotCoverage<=100?1:0.82)))):unitCount);
+    return {area,coverage,resGSF,totalGSF,groundGSF,unitCount,unitTypes,daylightPass};
+  }
+
+  function renderLab(){
+    const m=projectMetrics();
+    $('labResGSF').textContent=fmt(m.resGSF);
+    $('labTotalGSF').textContent=fmt(m.totalGSF);
+    const c=state.communityFunctions.length;
+    $('communityCount').innerHTML='Community functions: '+c+' / 3 required '+labStatus(c>=3?'COMPLIANT':'NON-COMPLIANT');
+    $('unitMixCount').innerHTML='Unit types: '+m.unitTypes+' / 2 required '+labStatus(m.unitTypes>=2?'COMPLIANT':'NON-COMPLIANT');
+    $('daylightReadout').innerHTML=fmt(m.daylightPass)+' / '+fmt(m.unitCount)+' units '+labStatus(m.daylightPass===m.unitCount?'COMPLIANT':'WARNING');
+
+    const rows=[
+      ['Site Area','29,071 GSF','29,071 GSF','COMPLIANT'],
+      ['Lot Coverage',Math.round(state.lotCoverage)+'%','50–100%',rangeStatus(state.lotCoverage,50,100,state.lotCoverage>100)],
+      ['Residential FAR',state.residentialFAR.toFixed(1),'2.5–4.0',rangeStatus(state.residentialFAR,2.5,4,state.residentialFAR>4)],
+      ['Residential GSF',fmt(m.resGSF),'72,500–116,000',m.resGSF<72500?'NON-COMPLIANT':m.resGSF<=116000?'COMPLIANT':'EXPERIMENTAL'],
+      ['Open Space FAR',state.openSpaceFAR.toFixed(1),'≥1.0',state.openSpaceFAR>=1?'COMPLIANT':'NON-COMPLIANT'],
+      ['Total Project FAR',state.totalProjectFAR.toFixed(1),'3.5–5.0',rangeStatus(state.totalProjectFAR,3.5,5,state.totalProjectFAR>5)],
+      ['Unit Types',m.unitTypes.toString(),'≥2',m.unitTypes>=2?'COMPLIANT':'NON-COMPLIANT'],
+      ['Community Functions',c.toString(),'≥3',c>=3?'COMPLIANT':'NON-COMPLIANT'],
+      ['Daylight',fmt(m.daylightPass)+' / '+fmt(m.unitCount),'100%',m.daylightPass===m.unitCount?'COMPLIANT':'WARNING']
+    ];
+    $('projectDashboard').innerHTML='<div class="comp-row head"><span>REQUIREMENT</span><span>CURRENT</span><span>STATUS</span></div>'+rows.map(r=>'<div class="comp-row"><span>'+r[0]+'</span><span>'+r[1]+'</span><span class="comp-status">'+labStatus(r[3])+'</span></div>').join('')+
+      '<div class="lab-note">FAR-derived residential GSF is shown separately from the explicit 72,500–116,000 GSF test. At 29,071 GSF, 2.5 FAR = 72,678 GSF and 4.0 FAR = 116,284 GSF, so the published FAR and GSF ranges do not perfectly align.</div>';
+  }
+
+  // LIVE CONTEXT DATA
+  // Surrounding parcel geometry comes from Fulton County's current tax-parcel service.
+  // Surrounding building footprints come from OpenStreetMap via Overpass.
+  // OSM does not provide a reliable cadastral parcel layer for this site, so parcel
+  // boundaries are sourced from the county assessor while OSM supplies building geometry.
+  const urbanGroup=new THREE.Group(); scene.add(urbanGroup);
+  const urbanMeshes=[];
+  const parcelData=[];
+  let urbanLoaded=false;
+  let urbanLoading=false;
+  let sitePolygon=[];
+  let siteCentroid={lat:33.7545,lon:-84.3910};
+  const OSM_BBOX_PAD=0.0065;
+  const GEO_FT=3.28084;
+  const FULTON_QUERY='https://gismaps.fultoncountyga.gov/arcgispub/rest/services/OpenData/Tax_Parcels/MapServer/0/query';
+  const OVERPASS_URL='https://overpass-api.de/api/interpreter';
+  const OVERPASS_FALLBACKS=['https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+
+  function projectGeo(lat,lon){
+    const lat0=siteCentroid.lat*Math.PI/180;
+    return {x:(lon-siteCentroid.lon)*111320*Math.cos(lat0)*GEO_FT, z:-(lat-siteCentroid.lat)*110540*GEO_FT};
+  }
+  function areaSqFt(points){
+    let a=0; for(let i=0;i<points.length;i++){const j=(i+1)%points.length;a+=points[i].x*points[j].z-points[j].x*points[i].z;} return Math.abs(a/2);
+  }
+  function polygonPointsFromRings(rings){
+    const ring=rings?.[0]||[];
+    return ring.map(([x,y])=>projectGeo(y,x));
+  }
+  function geoJsonRingsToPoints(geometry){
+    if(!geometry) return [];
+    if(geometry.type==='Polygon'){
+      const ring=geometry.coordinates?.[0]||[];
+      return ring.map(([lon,lat])=>projectGeo(lat,lon));
+    }
+    if(geometry.type==='MultiPolygon'){
+      const polys=geometry.coordinates||[];
+      let best=[];
+      for(const poly of polys){
+        const ring=poly?.[0]||[];
+        if(ring.length>best.length) best=ring;
+      }
+      return best.map(([lon,lat])=>projectGeo(lat,lon));
+    }
+    return [];
+  }
+  function geoJsonLonLatRing(geometry){
+    if(!geometry) return [];
+    if(geometry.type==='Polygon') return geometry.coordinates?.[0]||[];
+    if(geometry.type==='MultiPolygon'){
+      const polys=geometry.coordinates||[];
+      let best=[];
+      for(const poly of polys){ if((poly?.[0]||[]).length>best.length) best=poly[0]; }
+      return best;
+    }
+    return [];
+  }
+  function polygonShape(points){
+    if(!points.length) return null;
+    const sh=new THREE.Shape(); sh.moveTo(points[0].x,points[0].z); for(let i=1;i<points.length;i++) sh.lineTo(points[i].x,points[i].z); sh.closePath(); return sh;
+  }
+  function polygonOutline(points,color=0x8093a0,width=.8){
+    const pts=points.map(p=>new THREE.Vector3(p.x,.45,p.z)); if(pts.length) pts.push(pts[0].clone());
+    const g=new THREE.BufferGeometry().setFromPoints(pts); return new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity:.9}));
+  }
+  function centroidOf(points){
+    if(!points.length)return {x:0,z:0}; let x=0,z=0; points.forEach(p=>{x+=p.x;z+=p.z;}); return {x:x/points.length,z:z/points.length};
+  }
+  function bboxAroundSite(){
+    if(!sitePolygon.length) return {s:33.748,w:-84.397,n:33.761,e:-84.384};
+    const lats=sitePolygon.map(p=>p.lat), lons=sitePolygon.map(p=>p.lon);
+    return {s:Math.min(...lats)-OSM_BBOX_PAD,w:Math.min(...lons)-OSM_BBOX_PAD,n:Math.max(...lats)+OSM_BBOX_PAD,e:Math.max(...lons)+OSM_BBOX_PAD};
+  }
+  function parcelFromFeature(f,i){
+    const props=f.properties||f.attributes||{};
+    const pts=f.geometry?.rings ? polygonPointsFromRings(f.geometry.rings) : geoJsonRingsToPoints(f.geometry);
+    if(pts.length<3)return null;
+    const c=centroidOf(pts);
+    const liv=Number(props.LivUnits);
+    const existingFloors=Math.max(1,Number.isFinite(liv)&&liv>0?Math.min(8,liv):1);
+    const acres=Number(props.LandAcres);
+    const area=Number.isFinite(acres)&&acres>0?acres*43560:areaSqFt(pts);
+    return {id:String(props.ParcelID||('PARCEL-'+i)),address:props.Address||'Unaddressed parcel',points:pts,x:c.x,z:c.z,area,
+      existingFloors,currentFloors:existingFloors,currentFAR:Math.max(.1,existingFloors*.65),
+      maxFloors:Math.max(4,existingFloors*2),maxFAR:Math.max(2,existingFloors*1.3),mode:'existing',buildingIds:[]};
+  }
+  function buildingHeight(tags){
+    const levels=Number(tags?.['building:levels']); if(Number.isFinite(levels)&&levels>0)return Math.max(10,levels*11);
+    const h=Number(tags?.height); if(Number.isFinite(h)&&h>0)return h;
+    const b=String(tags?.building||'').toLowerCase(); return /tower|highrise/.test(b)?220:/apartments|commercial|office|retail/.test(b)?55:33;
+  }
+  function osmBuildingFeature(el){
+    const coords=(el.geometry||[]).map(n=>projectGeo(n.lat,n.lon)); if(coords.length<3)return null;
+    const c=centroidOf(coords); return {id:'OSM-'+el.id,points:coords,x:c.x,z:c.z,height:buildingHeight(el.tags||{}),levels:Number(el.tags?.['building:levels'])||null,name:el.tags?.name||'',building:el.tags?.building||'yes'};
+  }
+  function siteLocalOrientation(){
+    if(sitePolygon.length<3) return 0;
+    const pts=sitePolygon.map(p=>projectGeo(p.lat,p.lon));
+    const c=centroidOf(pts);
+    let xx=0,zz=0,xz=0;
+    pts.forEach(p=>{const x=p.x-c.x,z=p.z-c.z;xx+=x*x;zz+=z*z;xz+=x*z;});
+    const theta=0.5*Math.atan2(2*xz,xx-zz);
+    // theta is the direction of the local +X axis. The project model's
+    // long dimension is local Z, so rotate by theta + 90 degrees.
+    return theta+Math.PI/2;
+  }
+  function alignProjectToParcel(){
+    if(!sitePolygon.length) return;
+    const pts=sitePolygon.map(p=>projectGeo(p.lat,p.lon));
+    const c=centroidOf(pts);
+    content.position.set(c.x,0,c.z);
+    content.rotation.set(0,siteLocalOrientation(),0);
+  }
+
+  async function loadUrbanData(){
+    if(urbanLoaded||urbanLoading)return;
+    urbanLoading=true; updateContextHud('LOADING OSM + COUNTY PARCEL DATA');
+    try{
+      const pq=new URL(FULTON_QUERY);
+      pq.searchParams.set('where',"ParcelID='14-0077-0006-107-6'");
+      pq.searchParams.set('outFields','ParcelID,Address,LandAcres,LUCode,ClassCode,TaxYear,LivUnits');
+      pq.searchParams.set('returnGeometry','true'); pq.searchParams.set('outSR','4326'); pq.searchParams.set('f','geojson');
+      const siteGeo=await fetch(pq).then(r=>r.json());
+      const sf=siteGeo.features?.[0];
+      if(!sf) throw new Error('Target parcel 14-0077-0006-107-6 was not returned by Fulton GIS');
+      const siteRing=geoJsonLonLatRing(sf.geometry);
+      if(siteRing.length<3) throw new Error('Target parcel geometry was not a usable polygon');
+      sitePolygon=siteRing.map(([lon,lat])=>({lon,lat}));
+      const lats=sitePolygon.map(p=>p.lat), lons=sitePolygon.map(p=>p.lon);
+      siteCentroid={lat:lats.reduce((a,b)=>a+b,0)/lats.length,lon:lons.reduce((a,b)=>a+b,0)/lons.length};
+      const b=bboxAroundSite();
+      const fq=new URL(FULTON_QUERY); fq.searchParams.set('where','1=1'); fq.searchParams.set('geometry',`${b.w},${b.s},${b.e},${b.n}`); fq.searchParams.set('geometryType','esriGeometryEnvelope'); fq.searchParams.set('inSR','4326'); fq.searchParams.set('spatialRel','esriSpatialRelIntersects'); fq.searchParams.set('outFields','ParcelID,Address,LandAcres,LUCode,ClassCode,TaxYear,LivUnits'); fq.searchParams.set('returnGeometry','true'); fq.searchParams.set('outSR','4326'); fq.searchParams.set('resultRecordCount','2000'); fq.searchParams.set('f','geojson');
+      const parcelGeo=await fetch(fq).then(r=>r.json());
+      parcelData.length=0; (parcelGeo.features||[]).forEach((f,i)=>{const p=parcelFromFeature(f,i);if(p)parcelData.push(p);});
+      const oq=`[out:json][timeout:60];way[building](${b.s},${b.w},${b.n},${b.e});out tags geom;`;
+      let osm=null;
+      const osmQueryUrl=(base)=>base+'?data='+encodeURIComponent(oq);
+      for(const endpoint of [OVERPASS_URL,...OVERPASS_FALLBACKS]){
+        try{
+          const r=await fetch(osmQueryUrl(endpoint),{method:'GET',mode:'cors'});
+          if(!r.ok) throw new Error('Overpass HTTP '+r.status);
+          osm=await r.json();
+          if(osm?.elements) break;
+        }catch(e){ console.warn('OSM endpoint failed',endpoint,e); }
+      }
+      window.osmBuildings=(osm?.elements||[]).map(osmBuildingFeature).filter(Boolean);
+      // Assign each OSM building to the parcel containing its centroid, where possible.
+      (window.osmBuildings||[]).forEach(bld=>{let best=null,bestD=Infinity;parcelData.forEach(p=>{if(pointInPolygon({x:bld.x,z:bld.z},p.points))best=p;else{const d=Math.hypot(bld.x-p.x,bld.z-p.z);if(d<bestD){bestD=d;best=p;}}});if(best&&bestD<90)best.buildingIds.push(bld.id);});
+      state.parcelBase=parcelData.map(p=>Object.assign({},p)); urbanLoaded=true; urbanLoading=false; buildUrbanGeometry(); alignProjectToParcel(); fitUrbanView(); renderLab();
+    }catch(err){
+      console.warn('Urban data load failed',err); urbanLoading=false;
+      // Never substitute a fabricated parcel shape. The lab remains usable, but the
+      // parcel/context layer explicitly reports that live GIS data could not load.
+      updateContextHud('LIVE GIS UNAVAILABLE · BASE MODEL LOADED');
+      renderLab();
+    }
+  }
+  function pointInPolygon(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i].x,zi=poly[i].z,xj=poly[j].x,zj=poly[j].z;const intersect=((zi>pt.z)!=(zj>pt.z))&&(pt.x<(xj-xi)*(pt.z-zi)/(zj-zi)+xi);if(intersect)inside=!inside;}return inside;}
+
+  function massDims(p,floors,far,mode){
+    const strategy=state.massingStrategy; const coverage=Math.max(.15,Math.min(1,state.experimentalFuture?state.futureCoverage/100:.72));
+    let footprint=Math.min(p.area*coverage,p.area*far/Math.max(1,floors));
+    if(strategy==='compact') footprint=Math.min(footprint,p.area*.45); if(strategy==='lowrise') footprint=Math.min(p.area*.95,Math.max(footprint,p.area*.78));
+    if(strategy==='streetwall') footprint=Math.min(p.area*.95,Math.max(footprint,p.area*.75)); if(strategy==='courtyard') footprint=Math.min(footprint,p.area*.65); if(strategy==='towerpodium') footprint=Math.min(footprint,p.area*.55);
+    const ratio=Math.sqrt(Math.max(.05,Math.min(1,footprint/Math.max(1,p.area)))); return {ratio,h:floors*11,footprint,far};
+  }
+  function desiredParcelState(p){
+    const base=state.parcelBase.find(x=>x.id===p.id)||p; let floors=base.existingFloors,far=base.currentFAR,mode='existing';
+    if(state.contextState==='max'||state.buildMaxHeight||state.buildMaxFAR){mode='max';floors=state.buildMaxHeight?base.maxFloors:base.existingFloors;far=state.buildMaxFAR?base.maxFAR:base.currentFAR;if(!state.buildMaxHeight&&!state.buildMaxFAR){floors=base.maxFloors;far=base.maxFAR;}}
+    else if(state.contextState==='user'){mode='user';const t=state.surroundingBuildout/100;floors=Math.max(base.existingFloors,Math.round(base.existingFloors+(base.maxFloors-base.existingFloors)*t));far=base.currentFAR+(base.maxFAR-base.currentFAR)*t;}
+    if(state.experimentalFuture){mode='experimental';floors=Math.min(state.futureHeight,Math.max(base.existingFloors,Math.round(base.existingFloors+(state.futureHeight-base.existingFloors)*state.surroundingBuildout/100)));far=Math.min(state.futureFar,base.currentFAR+(state.futureFar-base.currentFAR)*state.surroundingBuildout/100);}
+    const o=state.parcelOverrides[p.id]; if(o){floors=o.floors??floors;far=o.far??far;mode=o.mode||'user';} return {floors,far,mode};
+  }
+  function clearUrbanLabels(){liveLabels.forEach(x=>x.el.remove());liveLabels.length=0;}
+  function buildUrbanGeometry(){
+    if(!urbanLoaded)return; urbanGroup.clear(); urbanMeshes.length=0; clearUrbanLabels();
+    urbanGroup.scale.setScalar(1);
+    const sitePts=sitePolygon.map(p=>projectGeo(p.lat,p.lon));
+    const siteShape=polygonShape(sitePts);
+    if(state.showStreets){
+      const b=bboxAroundSite(); const corners=[projectGeo(b.s,b.w),projectGeo(b.s,b.e),projectGeo(b.n,b.e),projectGeo(b.n,b.w)];
+      const minX=Math.min(...corners.map(p=>p.x)),maxX=Math.max(...corners.map(p=>p.x)),minZ=Math.min(...corners.map(p=>p.z)),maxZ=Math.max(...corners.map(p=>p.z));
+      const roadMat=new THREE.LineBasicMaterial({color:0x24211c,transparent:true,opacity:.65});
+      [[minX,minZ,maxX,minZ],[minX,maxZ,maxX,maxZ],[minX,minZ,minX,maxZ],[maxX,minZ,maxX,maxZ]].forEach(a=>{const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0],.08,a[1]),new THREE.Vector3(a[2],.08,a[3])]);urbanGroup.add(new THREE.Line(g,roadMat));});
+    }
+    const maxDist=state.contextScale===1?220:state.contextScale===2?500:state.contextScale===3?850:1300;
+    if(state.showParcels) parcelData.forEach(p=>{if(Math.hypot(p.x,p.z)>maxDist)return;const o=polygonOutline(p.points,state.selectedParcels.includes(p.id)?0x4fd3c4:0x8093a0,.8);urbanGroup.add(o);const hitShape=polygonShape(p.points);if(hitShape){const hit=new THREE.Mesh(new THREE.ShapeGeometry(hitShape),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));hit.rotation.x=-Math.PI/2; hit.position.y=.3; hit.userData.parcelId=p.id;urbanGroup.add(hit);urbanMeshes.push(hit);}});
+    if(state.showBuildings) (window.osmBuildings||[]).forEach(bld=>{if(Math.hypot(bld.x,bld.z)>maxDist)return;const owner=parcelData.find(p=>p.buildingIds.includes(bld.id));const ds=owner?desiredParcelState(owner):{floors:Math.max(1,Math.round(bld.height/11)),far:1,mode:'existing'};const dims=owner?massDims(owner,ds.floors,ds.far,ds.mode):{ratio:1,h:bld.height};const c=ds.mode==='existing'?0x6d7775:ds.mode==='experimental'?0xa13d2c:ds.mode==='max'?0x4f8fe0:0x4fd3c4;const shape=polygonShape(bld.points);if(!shape)return;const g=new THREE.ExtrudeGeometry(shape,{depth:dims.h,bevelEnabled:false});g.rotateX(-Math.PI/2);const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c,roughness:.9,transparent:true,opacity:.78}));m.position.y=0;m.userData.parcelId=owner?.id||null;m.userData.osmId=bld.id;urbanGroup.add(m);urbanMeshes.push(m);});
+    if(siteShape){const ring=polygonOutline(sitePts,0x4fd3c4,1.2);urbanGroup.add(ring);const halo=new THREE.Mesh(new THREE.ShapeGeometry(siteShape),new THREE.MeshBasicMaterial({color:0x4fd3c4,transparent:true,opacity:.08,side:THREE.DoubleSide}));halo.rotation.x=-Math.PI/2; halo.position.y=.15;urbanGroup.add(halo);}
+    addUrbanLabel('149 PEACHTREE ST · CONTROLLED SITE',new THREE.Vector3(centroidOf(sitePts).x,10,centroidOf(sitePts).z)); updateContextHud(); renderSelectionVisuals();
+  }
+  function fitUrbanView(){
+    const extent=state.contextScale===1?240:state.contextScale===2?520:state.contextScale===3?900:1350;
+    cam.radius=Math.max(300,extent*0.95);
+    cam.target.set(content.position.x,45,content.position.z);
+    cam.azimuth=-0.72; cam.elevation=0.58; updateCamera();
+  }
+  function addUrbanLabel(text,pos){const el=document.createElement('div');el.className='label3d';el.textContent=text;labelLayer.appendChild(el);liveLabels.push({pos,el});}
+  function updateContextHud(msg){const future=state.experimentalFuture?' · <b>EXPERIMENTAL FUTURE</b>':'';const stateName=state.experimentalFuture?'EXPERIMENTAL':state.contextState==='max'?'MAXIMUM ALLOWABLE':state.contextState==='user'?'USER-DEFINED':'EXISTING';$('contextHud').innerHTML='<b>URBAN LAB</b><br>Scale 0'+state.contextScale+' · '+stateName+future+'<br>'+(msg||'Parcel-by-parcel context · OSM buildings + county parcel geometry.');}
+  function rebuildUrban(){if(!urbanLoaded){loadUrbanData();return;}buildUrbanGeometry();alignProjectToParcel();renderLab();}
+
+  // Raycaster selection is parcel-level. Clicking any OSM building selects its containing parcel.
+  const urbanRaycaster=new THREE.Raycaster(), urbanPointer=new THREE.Vector2();
+  canvas.addEventListener('pointerdown',function(e){const rect=canvas.getBoundingClientRect();urbanPointer.x=((e.clientX-rect.left)/rect.width)*2-1;urbanPointer.y=-((e.clientY-rect.top)/rect.height)*2+1;urbanRaycaster.setFromCamera(urbanPointer,camera);const hits=urbanRaycaster.intersectObjects(urbanMeshes,false);if(!hits.length)return;const id=hits[0].object.userData.parcelId;if(!id)return;if(e.shiftKey){if(state.selectedParcels.includes(id))state.selectedParcels=state.selectedParcels.filter(x=>x!==id);else state.selectedParcels.push(id);}else state.selectedParcels=[id];renderParcelInfo();renderSelectionVisuals();});
+  function renderSelectionVisuals(){urbanMeshes.forEach(m=>{const selected=state.selectedParcels.includes(m.userData.parcelId);m.material.emissive=new THREE.Color(selected?0x4fd3c4:0x000000);m.material.emissiveIntensity=selected?.35:0;});}
+  function renderParcelInfo(){if(!state.selectedParcels.length){$('parcelInfo').innerHTML='<div class="lab-note">Click an OSM building or parcel outline to edit its containing parcel.</div>';return;}const p=parcelData.find(x=>x.id===state.selectedParcels[state.selectedParcels.length-1]);if(!p)return;const ds=desiredParcelState(p);$('parcelInfo').innerHTML='<b>'+p.id+'</b> · '+fmt(p.area)+' SF<br><span class="lab-note">'+p.address+'</span><div class="lab-metric"><span>Existing</span><span>'+p.existingFloors+'F · '+p.currentFAR.toFixed(1)+' FAR</span></div><div class="lab-metric"><span>Scenario Max</span><span>'+p.maxFloors+'F · '+p.maxFAR.toFixed(1)+' FAR</span></div><div class="lab-metric"><span>Current</span><span>'+ds.floors+'F · '+ds.far.toFixed(1)+' FAR</span></div><div class="lab-row"><div class="lab-row-top"><span class="lab-label">Custom height</span><span class="lab-value" id="selectedHeightVal">'+ds.floors+' floors</span></div><input id="selectedHeight" type="range" min="1" max="'+p.maxFloors+'" value="'+ds.floors+'"></div><div class="lab-row"><div class="lab-row-top"><span class="lab-label">Custom FAR</span><span class="lab-value" id="selectedFarVal">'+ds.far.toFixed(1)+'</span></div><input id="selectedFar" type="range" min=".5" max="'+Math.max(.5,p.maxFAR)+'" value="'+ds.far+'" step=".1"></div><div class="lab-note">'+state.selectedParcels.length+' parcel'+(state.selectedParcels.length===1?'':'s')+' selected.</div>';$('selectedHeight').addEventListener('input',e=>{const v=Number(e.target.value);$('selectedHeightVal').textContent=v+' floors';state.selectedParcels.forEach(id=>{const q=parcelData.find(x=>x.id===id);const cur=state.parcelOverrides[id]||{};state.parcelOverrides[id]={floors:v,far:cur.far??q.currentFAR,mode:'user'};});rebuildUrban();renderParcelInfo();});$('selectedFar').addEventListener('input',e=>{const v=Number(e.target.value);$('selectedFarVal').textContent=v.toFixed(1);state.selectedParcels.forEach(id=>{const q=parcelData.find(x=>x.id===id);const cur=state.parcelOverrides[id]||{};state.parcelOverrides[id]={floors:cur.floors??q.currentFloors,far:v,mode:'user'};});rebuildUrban();renderParcelInfo();});}
+  function renderSelectionAndRebuild(){renderParcelInfo();rebuildUrban();setTimeout(renderSelectionVisuals,0);}
+  $('buildSelectedMax').addEventListener('click',()=>{state.selectedParcels.forEach(id=>{const p=parcelData.find(x=>x.id===id);if(p)state.parcelOverrides[id]={floors:p.maxFloors,far:p.maxFAR,mode:'max'};});renderSelectionAndRebuild();});
+  $('restoreSelected').addEventListener('click',()=>{state.selectedParcels.forEach(id=>delete state.parcelOverrides[id]);renderSelectionAndRebuild();});
+  $('customSelected').addEventListener('click',()=>{state.selectedParcels.forEach(id=>{const p=parcelData.find(x=>x.id===id);if(p)state.parcelOverrides[id]={floors:Math.min(p.maxFloors,Math.max(p.existingFloors+1,Math.round((p.existingFloors+p.maxFloors)/2))),far:Math.min(p.maxFAR,Math.max(p.currentFAR+.1,(p.currentFAR+p.maxFAR)/2)),mode:'user'};});state.contextState='user';$('contextState').value='user';renderSelectionAndRebuild();});
+  $('clearSelection').addEventListener('click',()=>{state.selectedParcels=[];renderParcelInfo();renderSelectionVisuals();});
+  $('combineSelected').addEventListener('click',()=>{if(state.selectedParcels.length<2)return;const selected=parcelData.filter(p=>state.selectedParcels.includes(p.id));const maxFAR=Math.max(...selected.map(p=>p.maxFAR)),maxFloors=Math.max(...selected.map(p=>p.maxFloors));selected.forEach(p=>{state.parcelOverrides[p.id]={floors:maxFloors,far:maxFAR,mode:'user'};});renderSelectionAndRebuild();});
+  $('divideSelected').addEventListener('click',()=>{state.selectedParcels.forEach(id=>{const p=parcelData.find(x=>x.id===id);if(p)state.parcelOverrides[id]={floors:p.currentFloors,far:p.currentFAR,mode:'user'};});renderSelectionAndRebuild();});
+  $('restoreParcels').addEventListener('click',()=>{state.parcelOverrides={};state.selectedParcels=[];state.contextState='existing';$('contextState').value='existing';state.buildMaxHeight=false;state.buildMaxFAR=false;$('buildMaxHeight').checked=false;$('buildMaxFAR').checked=false;renderSelectionAndRebuild();});
+  $('resetBaseline').addEventListener('click',()=>{state.parcelOverrides={};state.selectedParcels=[];state.contextState='existing';state.experimentalFuture=false;state.buildMaxHeight=false;state.buildMaxFAR=false;state.surroundingBuildout=0;$('contextState').value='existing';$('experimentalFuture').checked=false;$('futureControls').style.display='none';$('buildMaxHeight').checked=false;$('buildMaxFAR').checked=false;$('buildoutSlider').value=0;$('buildoutVal').textContent='0%';renderSelectionAndRebuild();});
+
+  document.querySelectorAll('[data-scenario]').forEach(btn=>btn.addEventListener('click',()=>{const s=btn.dataset.scenario;state.parcelOverrides={};state.selectedParcels=[];state.experimentalFuture=false;$('experimentalFuture').checked=false;$('futureControls').style.display='none';if(s==='existing'){state.contextState='existing';state.surroundingBuildout=0;}if(s==='max'){state.contextState='max';state.buildMaxHeight=true;state.buildMaxFAR=true;$('buildMaxHeight').checked=true;$('buildMaxFAR').checked=true;}if(s==='six'){state.contextState='user';state.surroundingBuildout=55;state.massingStrategy='lowrise';$('contextState').value='user';$('buildoutSlider').value=55;$('buildoutVal').textContent='55%';$('massingStrategy').value='lowrise';}if(s==='commons'){state.contextState='user';state.surroundingBuildout=45;state.massingStrategy='streetwall';state.streetMode='Plaza';$('contextState').value='user';$('buildoutSlider').value=45;$('buildoutVal').textContent='45%';$('massingStrategy').value='streetwall';$('streetMode').value='Plaza';}if(s==='high'){state.contextState='max';state.buildMaxHeight=true;state.buildMaxFAR=true;state.massingStrategy='compact';state.surroundingBuildout=100;$('contextState').value='max';$('buildMaxHeight').checked=true;$('buildMaxFAR').checked=true;$('massingStrategy').value='compact';$('buildoutSlider').value=100;$('buildoutVal').textContent='100%';}if(s==='historic'){state.contextState='user';state.surroundingBuildout=25;state.massingStrategy='lowrise';$('contextState').value='user';$('buildoutSlider').value=25;$('buildoutVal').textContent='25%';$('massingStrategy').value='lowrise';}if(s==='experimental'){state.experimentalFuture=true;$('experimentalFuture').checked=true;$('futureControls').style.display='block';state.contextScale=4;state.contextState='user';state.surroundingBuildout=100;$('contextScale').value=4;$('contextState').value='user';$('buildoutSlider').value=100;$('buildoutVal').textContent='100%';}rebuildUrban();}));
+
+  // Project geometry is extended with the architectural laboratory footprint/open space.
+  const oldRebuild=rebuild;
+  rebuild=function(){
+    oldRebuild();
+    // Open-space plane is intentionally spatial and separate from building mass.
+    const oldProj=new THREE.Group();
+    const openFrac=Math.min(.75,Math.max(0,state.openSpaceFAR/3));
+    const os=flatStrip(Math.max(20,LOT_WIDTH*Math.sqrt(openFrac)),Math.max(20,LOT_DEPTH*Math.sqrt(openFrac)),0x3f7d4a,.26);
+    os.position.set(0,.65,LOT_DEPTH*.16);
+    oldProj.add(os);
+    content.add(oldProj);
+    renderLab();
+  };
+
+
+  createParcels();
+  rebuildUrban();
+  rebuild();
+})();
+
+</script>
+</body>
+</html>
